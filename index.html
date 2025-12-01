@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cue-Cards App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000;
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .app-container {
+            position: relative;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 15px 20px;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .add-card-btn {
+            background: #4ecdc4;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .add-card-btn:hover {
+            background: #45b7b8;
+            transform: scale(1.05);
+        }
+
+        /* Card Container */
+        .cards-container {
+            flex: 1;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            padding-top: 80px;
+            padding-bottom: 20px;
+        }
+
+        .cards-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .card-wrapper {
+            height: 100vh;
+            scroll-snap-align: start;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* Card */
+        .card {
+            width: 90%;
+            max-width: 500px;
+            height: 70vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            text-align: center;
+            border-radius: 20px;
+        }
+
+        .card-front {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .card-back {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            transform: rotateY(180deg);
+        }
+
+        .card-text {
+            font-size: 32px;
+            font-weight: bold;
+            line-height: 1.4;
+        }
+
+        .card-hint {
+            position: absolute;
+            bottom: 20px;
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            position: fixed;
+            top: 70px;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            z-index: 999;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #4ecdc4;
+            transition: width 0.3s ease;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1a1a1a;
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+        }
+
+        .modal h2 {
+            margin-bottom: 20px;
+            color: #4ecdc4;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #ccc;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 10px;
+            color: white;
+            font-size: 16px;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #4ecdc4;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #444;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* Controls */
+        .controls {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .control-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+
+        /* Empty State */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .empty-state h2 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            color: #4ecdc4;
+        }
+
+        .empty-state p {
+            font-size: 18px;
+            opacity: 0.7;
+            margin-bottom: 30px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .card {
+                width: 95%;
+                height: 60vh;
+            }
+
+            .card-text {
+                font-size: 24px;
+            }
+
+            .controls {
+                right: 10px;
+            }
+
+            .control-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">Cue-Cards</div>
+            <button class="add-card-btn" onclick="openModal()">+ Add Card</button>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <!-- Cards Container -->
+        <div class="cards-container" id="cardsContainer">
+            <div class="empty-state" id="emptyState">
+                <h2>No cards yet!</h2>
+                <p>Click the "Add Card" button to create your first cue card</p>
+                <button class="add-card-btn" onclick="openModal()">Create Your First Card</button>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button class="control-btn" onclick="previousCard()" title="Previous">↑</button>
+            <button class="control-btn" onclick="nextCard()" title="Next">↓</button>
+            <button class="control-btn" onclick="shuffleCards()" title="Shuffle">🔀</button>
+        </div>
+
+        <!-- Modal -->
+        <div class="modal" id="modal">
+            <div class="modal-content">
+                <h2>Add New Card</h2>
+                <form id="cardForm">
+                    <div class="form-group">
+                        <label for="frontText">Front (Question)</label>
+                        <textarea id="frontText" placeholder="Enter the question or prompt..." required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="backText">Back (Answer)</label>
+                        <textarea id="backText" placeholder="Enter the answer..." required></textarea>
+                    </div>
+                    <div class="modal-buttons">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add Card</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let cards = JSON.parse(localStorage.getItem('cueCards')) || [];
+        let currentCardIndex = 0;
+
+        // DOM Elements
+        const cardsContainer = document.getElementById('cardsContainer');
+        const emptyState = document.getElementById('emptyState');
+        const modal = document.getElementById('modal');
+        const cardForm = document.getElementById('cardForm');
+        const progressFill = document.getElementById('progressFill');
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            renderCards();
+            updateProgress();
+        });
+
+        // Render Cards
+        function renderCards() {
+            if (cards.length === 0) {
+                emptyState.style.display = 'flex';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            cardsContainer.innerHTML = '';
+
+            cards.forEach((card, index) => {
+                const cardWrapper = document.createElement('div');
+                cardWrapper.className = 'card-wrapper';
+                cardWrapper.innerHTML = `
+                    <div class="card" onclick="flipCard(${index})">
+                        <div class="card-face card-front">
+                            <div class="card-text">${card.front}</div>
+                            <div class="card-hint">Click to flip</div>
+                        </div>
+                        <div class="card-face card-back">
+                            <div class="card-text">${card.back}</div>
+                            <div class="card-hint">Click to flip back</div>
+                        </div>
+                    </div>
+                `;
+                cardsContainer.appendChild(cardWrapper);
+            });
+
+            // Scroll to current card
+            setTimeout(() => {
+                scrollToCard(currentCardIndex);
+            }, 100);
+        }
+
+        // Flip Card
+        function flipCard(index) {
+            const card = document.querySelectorAll('.card')[index];
+            card.classList.toggle('flipped');
+        }
+
+        // Navigation
+        function nextCard() {
+            if (currentCardIndex < cards.length - 1) {
+                currentCardIndex++;
+                scrollToCard(currentCardIndex);
+                updateProgress();
+            }
+        }
+
+        function previousCard() {
+            if (currentCardIndex > 0) {
+                currentCardIndex--;
+                scrollToCard(currentCardIndex);
+                updateProgress();
+            }
+        }
+
+        function scrollToCard(index) {
+            const cardWrappers = document.querySelectorAll('.card-wrapper');
+            if (cardWrappers[index]) {
+                cardWrappers[index].scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        // Shuffle
+        function shuffleCards() {
+            for (let i = cards.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [cards[i], cards[j]] = [cards[j], cards[i]];
+            }
+            currentCardIndex = 0;
+            renderCards();
+            updateProgress();
+        }
+
+        // Progress
+        function updateProgress() {
+            const progress = cards.length > 0 ? ((currentCardIndex + 1) / cards.length) * 100 : 0;
+            progressFill.style.width = progress + '%';
+        }
+
+        // Modal
+        function openModal() {
+            modal.classList.add('active');
+        }
+
+        function closeModal() {
+            modal.classList.remove('active');
+            cardForm.reset();
+        }
+
+        // Form Submit
+        cardForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const frontText = document.getElementById('frontText').value;
+            const backText = document.getElementById('backText').value;
+
+            cards.push({
+                front: frontText,
+                back: backText
+            });
+
+            localStorage.setItem('cueCards', JSON.stringify(cards));
+            closeModal();
+            renderCards();
+            updateProgress();
+        });
+
+        // Keyboard Navigation
+        document.addEventListener('keydown', (e) => {
+            switch(e.key) {
+                case 'ArrowUp':
+                    previousCard();
+                    break;
+                case 'ArrowDown':
+                    nextCard();
+                    break;
+                case ' ':
+                    e.preventDefault();
+                    if (cards.length > 0) {
+                        flipCard(currentCardIndex);
+                    }
+                    break;
+                case 's':
+                    shuffleCards();
+                    break;
+            }
+        });
+
+        // Scroll Detection
+        let scrollTimeout;
+        cardsContainer.addEventListener('scroll', () => {
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => {
+                const cardWrappers = document.querySelectorAll('.card-wrapper');
+                const containerHeight = cardsContainer.clientHeight;
+                const scrollPosition = cardsContainer.scrollTop + containerHeight / 2;
+
+                cardWrappers.forEach((wrapper, index) => {
+                    const wrapperTop = wrapper.offsetTop;
+                    const wrapperBottom = wrapperTop + wrapper.offsetHeight;
+
+                    if (scrollPosition >= wrapperTop && scrollPosition < wrapperBottom) {
+                        currentCardIndex = index;
+                        updateProgress();
+                    }
+                });
+            }, 100);
+        });
+
+        // Touch Support
+        let touchStartY = 0;
+        let touchEndY = 0;
+
+        cardsContainer.addEventListener('touchstart', (e) => {
+            touchStartY = e.changedTouches[0].screenY;
+        });
+
+        cardsContainer.addEventListener('touchend', (e) => {
+            touchEndY = e.changedTouches[0].screenY;
+            handleSwipe();
+        });
+
+        function handleSwipe() {
+            const swipeThreshold = 50;
+            const diff = touchStartY - touchEndY;
+
+            if (Math.abs(diff) > swipeThreshold) {
+                if (diff > 0) {
+                    nextCard();
+                } else {
+                    previousCard();
+                }
+            }
+        }
+    </script>
+</body>
+</html>
